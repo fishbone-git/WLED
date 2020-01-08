@@ -91,11 +91,7 @@
 #define IS_REVERSE      ((SEGMENT.options & REVERSE )     == REVERSE     )
 #define IS_SELECTED     ((SEGMENT.options & SELECTED)     == SELECTED    )
 
-<<<<<<< HEAD
 #define MODE_COUNT  100
-=======
-#define MODE_COUNT  96
->>>>>>> upstream/master
 
 #define FX_MODE_STATIC                   0
 #define FX_MODE_BLINK                    1
@@ -193,13 +189,10 @@
 #define FX_MODE_SINELON_DUAL            93
 #define FX_MODE_SINELON_RAINBOW         94
 #define FX_MODE_POPCORN                 95
-<<<<<<< HEAD
 #define FX_MODE_RUNNING_SLIP            96
 #define FX_MODE_RUNNING_BLEND           97
 #define FX_MODE_PLASMA                  98
 #define FX_MODE_RIPPLE_RAINBOW          99
-=======
->>>>>>> upstream/master
 
 
 class WS2812FX {
@@ -376,13 +369,10 @@ class WS2812FX {
       _mode[FX_MODE_SINELON_DUAL]            = &WS2812FX::mode_sinelon_dual;
       _mode[FX_MODE_SINELON_RAINBOW]         = &WS2812FX::mode_sinelon_rainbow;
       _mode[FX_MODE_POPCORN]                 = &WS2812FX::mode_popcorn;
-<<<<<<< HEAD
       _mode[FX_MODE_RUNNING_SLIP]            = &WS2812FX::mode_running_slip;
       _mode[FX_MODE_RUNNING_BLEND]           = &WS2812FX::mode_running_blend;
       _mode[FX_MODE_PLASMA]                  = &WS2812FX::mode_plasma;
       _mode[FX_MODE_RIPPLE_RAINBOW]          = &WS2812FX::mode_ripple_rainbow;
-=======
->>>>>>> upstream/master
 
       _brightness = DEFAULT_BRIGHTNESS;
       currentPalette = CRGBPalette16(CRGB::Black);
@@ -565,15 +555,11 @@ class WS2812FX {
       mode_sinelon(void),
       mode_sinelon_dual(void),
       mode_sinelon_rainbow(void),
-<<<<<<< HEAD
       mode_popcorn(void),
       mode_running_slip(void),
       mode_running_blend(void),
       mode_plasma(void),
       mode_ripple_rainbow(void);
-=======
-      mode_popcorn(void);
->>>>>>> upstream/master
       
 
   private:
@@ -652,11 +638,7 @@ const char JSON_mode_names[] PROGMEM = R"=====([
 "Scanner Dual","Stream 2","Oscillate","Pride 2015","Juggle","Palette","Fire 2012","Colorwaves","Bpm","Fill Noise",
 "Noise 1","Noise 2","Noise 3","Noise 4","Colortwinkles","Lake","Meteor","Meteor Smooth","Railway","Ripple",
 "Twinklefox","Twinklecat","Halloween Eyes","Solid Pattern","Solid Pattern Tri","Spots","Spots Fade","Glitter","Candle","Fireworks Starburst",
-<<<<<<< HEAD
 "Fireworks 1D","Bouncing Balls","Sinelon","Sinelon Dual","Sinelon Rainbow","Popcorn","Running Slip","Running Blend","Plasma","Ripple Rainbow"
-=======
-"Fireworks 1D","Bouncing Balls","Sinelon","Sinelon Dual","Sinelon Rainbow","Popcorn"
->>>>>>> upstream/master
 ])=====";
 
 

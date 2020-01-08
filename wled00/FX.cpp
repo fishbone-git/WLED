@@ -1976,16 +1976,11 @@ uint16_t WS2812FX::mode_meteor() {
     {
       byte meteorTrailDecay = 128 + random8(127);
       trail[i] = scale8(trail[i], meteorTrailDecay);
-<<<<<<< HEAD
-      //setPixelColor(SEGMENT.start+i,BLACK);
-=======
->>>>>>> upstream/master
       setPixelColor(SEGMENT.start + i, color_from_palette(trail[i], false, true, 255));
     }
   }
 
   // draw meteor
-<<<<<<< HEAD
   if(SEGENV.aux1 < SEGLEN) {
     for(int j = 0; j < meteorSize; j++) {
       uint16_t index = SEGENV.aux1 + j;
@@ -2001,16 +1996,6 @@ uint16_t WS2812FX::mode_meteor() {
   } else if (random8(SEGMENT.speed-(in-SEGENV.step))<2) {
     SEGENV.aux1 = 0;
     SEGENV.step = in;
-=======
-  for(int j = 0; j < meteorSize; j++) {
-    uint16_t index = in + j;
-    if(index >= SEGLEN) {
-      index = (in + j - SEGLEN);
-    }
-
-    trail[index] = 240;
-    setPixelColor(SEGMENT.start + index, color_from_palette(trail[index], false, true, 255));
->>>>>>> upstream/master
   }
   
   return FRAMETIME;
@@ -2032,11 +2017,7 @@ uint16_t WS2812FX::mode_meteor_smooth() {
   for (uint16_t i = 0; i < SEGLEN; i++) {
     if (trail[i] != 0 && random8() <= 255 - SEGMENT.intensity)
     {
-<<<<<<< HEAD
       int change = 3 - random8(16); //change each time between -8 and +3
-=======
-      int change = 3 - random8(12); //change each time between -8 and +3
->>>>>>> upstream/master
       trail[i] += change;
       if (trail[i] > 245) trail[i] = 0;
       if (trail[i] > 240) trail[i] = 240;
@@ -2101,22 +2082,11 @@ typedef struct Ripple {
   uint16_t pos;
 } ripple;
 
-<<<<<<< HEAD
 uint16_t WS2812FX::ripple_base(bool rainbow)
-=======
-uint16_t WS2812FX::mode_ripple()
->>>>>>> upstream/master
 {
   uint16_t maxRipples = 1 + (SEGLEN >> 2);
   if (maxRipples > 100) maxRipples = 100;
   uint16_t dataSize = sizeof(ripple) * maxRipples;
-<<<<<<< HEAD
-=======
-
-  if (!SEGENV.allocateData(dataSize)) return mode_static(); //allocation failed
- 
-  Ripple* ripples = reinterpret_cast<Ripple*>(SEGENV.data);
->>>>>>> upstream/master
 
   if (!SEGENV.allocateData(dataSize)) return mode_static(); //allocation failed
  
@@ -2553,21 +2523,14 @@ uint16_t WS2812FX::mode_bouncing_balls(void) {
 uint16_t WS2812FX::sinelon_base(bool dual, bool rainbow=false) {
   fade_out(SEGMENT.intensity);
   int pos = beatsin16(SEGMENT.speed/10,0,SEGLEN-1);
-<<<<<<< HEAD
   int prevpos = SEGENV.aux0;
-=======
->>>>>>> upstream/master
   
   uint32_t color1 = color_from_palette(pos, true, false, 0);
   if (rainbow) {
     color1 = color_wheel((pos & 0x07) * 32);
   }
-<<<<<<< HEAD
   //setPixelColor(SEGMENT.start + pos, color1);
   setRange(prevpos,pos,color1);
-=======
-  setPixelColor(SEGMENT.start + pos, color1);
->>>>>>> upstream/master
 
   if (dual) {
     uint32_t color2 = SEGCOLOR(2);
@@ -2575,16 +2538,10 @@ uint16_t WS2812FX::sinelon_base(bool dual, bool rainbow=false) {
     if (!color2) color2 = color_from_palette(pos, true, false, 0);
     if (rainbow) color2 = color1; //rainbow
 
-<<<<<<< HEAD
     //setPixelColor(SEGMENT.start + SEGLEN-1-pos, color2);
     setRange(SEGMENT.start + SEGLEN-1-prevpos,SEGMENT.start + SEGLEN-1-pos,color2);
   }
   SEGENV.aux0 = pos;
-=======
-    setPixelColor(SEGMENT.start + SEGLEN-1-pos, color2);
-  }
-
->>>>>>> upstream/master
   return FRAMETIME;
 }
 
@@ -2964,7 +2921,6 @@ uint16_t WS2812FX::mode_exploding_fireworks(void)
   
   return FRAMETIME;  
 }
-<<<<<<< HEAD
 
 
 /*
@@ -3071,5 +3027,3 @@ uint16_t WS2812FX::mode_plasma(void) {                        // This is the hea
   }
   return FRAMETIME;
 }
-=======
->>>>>>> upstream/master
