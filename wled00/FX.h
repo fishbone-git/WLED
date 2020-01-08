@@ -91,7 +91,7 @@
 #define IS_REVERSE      ((SEGMENT.options & REVERSE )     == REVERSE     )
 #define IS_SELECTED     ((SEGMENT.options & SELECTED)     == SELECTED    )
 
-#define MODE_COUNT  99
+#define MODE_COUNT  100
 
 #define FX_MODE_STATIC                   0
 #define FX_MODE_BLINK                    1
@@ -183,19 +183,23 @@
 #define FX_MODE_GLITTER                 87
 #define FX_MODE_CANDLE                  88
 #define FX_MODE_STARBURST               89
-#define FX_MODE_SINELON                 90
-#define FX_MODE_SINELON_DUAL            91
-#define FX_MODE_SINELON_RAINBOW         92
-#define FX_MODE_POPCORN                 93
-#define FX_MODE_BOUNCINGBALLS           94
-#define FX_MODE_RUNNING_SLIP            95
-#define FX_MODE_RUNNING_BLEND           96
-#define FX_MODE_EXPLODING_FIREWORKS     97
+#define FX_MODE_EXPLODING_FIREWORKS     90
+#define FX_MODE_BOUNCINGBALLS           91
+#define FX_MODE_SINELON                 92
+#define FX_MODE_SINELON_DUAL            93
+#define FX_MODE_SINELON_RAINBOW         94
+#define FX_MODE_POPCORN                 95
+#define FX_MODE_RUNNING_SLIP            96
+#define FX_MODE_RUNNING_BLEND           97
 #define FX_MODE_PLASMA                  98
+#define FX_MODE_RIPPLE_RAINBOW          99
 
 
 class WS2812FX {
   typedef uint16_t (WS2812FX::*mode_ptr)(void);
+
+  // pre show callback
+  typedef void (*show_callback) (void);
   
   // segment parameters
   public:
@@ -359,15 +363,16 @@ class WS2812FX {
       _mode[FX_MODE_GLITTER]                 = &WS2812FX::mode_glitter;
       _mode[FX_MODE_CANDLE]                  = &WS2812FX::mode_candle;
       _mode[FX_MODE_STARBURST]               = &WS2812FX::mode_starburst;
+      _mode[FX_MODE_EXPLODING_FIREWORKS]     = &WS2812FX::mode_exploding_fireworks;
+      _mode[FX_MODE_BOUNCINGBALLS]           = &WS2812FX::mode_bouncing_balls;
       _mode[FX_MODE_SINELON]                 = &WS2812FX::mode_sinelon;
       _mode[FX_MODE_SINELON_DUAL]            = &WS2812FX::mode_sinelon_dual;
       _mode[FX_MODE_SINELON_RAINBOW]         = &WS2812FX::mode_sinelon_rainbow;
       _mode[FX_MODE_POPCORN]                 = &WS2812FX::mode_popcorn;
-      _mode[FX_MODE_BOUNCINGBALLS]           = &WS2812FX::mode_BouncingBalls;
       _mode[FX_MODE_RUNNING_SLIP]            = &WS2812FX::mode_running_slip;
       _mode[FX_MODE_RUNNING_BLEND]           = &WS2812FX::mode_running_blend;
-      _mode[FX_MODE_EXPLODING_FIREWORKS]     = &WS2812FX::mode_exploding_fireworks;
       _mode[FX_MODE_PLASMA]                  = &WS2812FX::mode_plasma;
+      _mode[FX_MODE_RIPPLE_RAINBOW]          = &WS2812FX::mode_ripple_rainbow;
 
       _brightness = DEFAULT_BRIGHTNESS;
       currentPalette = CRGBPalette16(CRGB::Black);
@@ -375,8 +380,6 @@ class WS2812FX {
       ablMilliampsMax = 850;
       currentMilliamps = 0;
       timebase = 0;
-      _locked = nullptr;
-      _modeUsesLock = false;
       bus = new NeoPixelWrapper();
       resetSegments();
     }
@@ -393,21 +396,14 @@ class WS2812FX {
       driverModeCronixie(bool b),
       setCronixieDigits(byte* d),
       setCronixieBacklight(bool b),
-      setIndividual(uint16_t i, uint32_t col),
       setRange(uint16_t i, uint16_t i2, uint32_t col),
-      lock(uint16_t i),
-      lockRange(uint16_t i, uint16_t i2),
-      unlock(uint16_t i),
-      unlockRange(uint16_t i, uint16_t i2),
-      unlockAll(void),
+      setShowCallback(show_callback cb),
       setTransitionMode(bool t),
       trigger(void),
       setSegment(uint8_t n, uint16_t start, uint16_t stop),
       resetSegments(),
       setPixelColor(uint16_t n, uint32_t c),
       setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b, uint8_t w = 0),
-      flare(void),
-      explode(void),
       show(void);
 
     bool
@@ -552,17 +548,18 @@ class WS2812FX {
       mode_spots(void),
       mode_spots_fade(void),
       mode_glitter(void),
-      mode_candle(void), 
+      mode_candle(void),
+      mode_starburst(void),
+      mode_exploding_fireworks(void),
+      mode_bouncing_balls(void),
       mode_sinelon(void),
       mode_sinelon_dual(void),
       mode_sinelon_rainbow(void),
       mode_popcorn(void),
-      mode_BouncingBalls(void),
       mode_running_slip(void),
       mode_running_blend(void),
-      mode_exploding_fireworks(void),
       mode_plasma(void),
-      mode_starburst(void);
+      mode_ripple_rainbow(void);
       
 
   private:
@@ -581,20 +578,19 @@ class WS2812FX {
 
     void handle_palette(void);
     void fill(uint32_t);
-    bool modeUsesLock(uint8_t);
 
     bool
-      _modeUsesLock,
       _rgbwMode,
       _cronixieMode,
       _cronixieBacklightEnabled,
       _skipFirstMode,
       _triggered;
 
-    byte* _locked;
     byte _cronixieDigits[6];
 
     mode_ptr _mode[MODE_COUNT]; // SRAM footprint: 4 bytes per element
+
+    show_callback _callback = nullptr;
 
     // mode helper functions
     uint16_t
@@ -612,6 +608,7 @@ class WS2812FX {
       running(uint32_t, uint32_t),
       tricolor_chase(uint32_t, uint32_t),
       twinklefox_base(bool),
+      ripple_base(bool),
       spots_base(uint16_t);
 
     CRGB twinklefox_one_twinkle(uint32_t ms, uint8_t salt, bool cat);
@@ -641,7 +638,7 @@ const char JSON_mode_names[] PROGMEM = R"=====([
 "Scanner Dual","Stream 2","Oscillate","Pride 2015","Juggle","Palette","Fire 2012","Colorwaves","Bpm","Fill Noise",
 "Noise 1","Noise 2","Noise 3","Noise 4","Colortwinkles","Lake","Meteor","Meteor Smooth","Railway","Ripple",
 "Twinklefox","Twinklecat","Halloween Eyes","Solid Pattern","Solid Pattern Tri","Spots","Spots Fade","Glitter","Candle","Fireworks Starburst",
-"Sinelon","Sinelon Dual","Sinelon Rainbow","Popcorn","Bouncing Balls","Running Slip","Running Blend","Fireworks Flare","Plasma"
+"Fireworks 1D","Bouncing Balls","Sinelon","Sinelon Dual","Sinelon Rainbow","Popcorn","Running Slip","Running Blend","Plasma","Ripple Rainbow"
 ])=====";
 
 
