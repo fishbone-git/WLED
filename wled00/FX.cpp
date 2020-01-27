@@ -380,9 +380,10 @@ uint16_t WS2812FX::mode_rainbow_cycle(void) {
  * theater chase function
  */
 uint16_t WS2812FX::theater_chase(uint32_t color1, uint32_t color2, bool dopalette) {
-  byte gap = 2 + ((255 - SEGMENT.intensity) >> 5);
+  byte gap = 2 + ((255 - SEGMENT.intensity) >> 3);
   uint32_t cycleTime = 50 + (255 - SEGMENT.speed)*2;
   uint32_t it = now / cycleTime;
+  if (SEGMENT.speed == 0 && dopalette) it = 0;
   if (it != SEGENV.step) //new color
   {
     SEGENV.aux0 = (SEGENV.aux0 +1) % gap;
@@ -394,12 +395,14 @@ uint16_t WS2812FX::theater_chase(uint32_t color1, uint32_t color2, bool dopalett
       if (dopalette)
       {
         setPixelColor(i, color_from_palette(i, true, PALETTE_SOLID_WRAP, 0));
+        if (SEGMENT.speed == 0 && dopalette) setPixelColor(i-1, color_from_palette(i, true, PALETTE_SOLID_WRAP, 0));
       } else {
         setPixelColor(i, color1);
       }
     } else {
       setPixelColor(i, color2);
     }
+    
   }
   return FRAMETIME;
 }
@@ -1182,8 +1185,13 @@ uint16_t WS2812FX::police_base(uint32_t color1, uint32_t color2)
   if (idexR > topindex) idexB -= SEGLEN;
   if (idexB >= SEGLEN) idexB = 0; //otherwise overflow on odd number of LEDs
 
-  setPixelColor(idexR, color1);
-  setPixelColor(idexB, color2);
+  uint8_t gap = (SEGMENT.speed / ((SEGLEN >> 3) +1));
+  for (uint8_t i = 0; i <= gap ; i++) {
+    if ((idexR - i) < 0) idexR = SEGLEN + i;
+    if ((idexB - i) < 0) idexB = SEGLEN + i;
+    setPixelColor(idexR-i, color1);
+    setPixelColor(idexB-i, color2);
+  }
 
   return FRAMETIME;
 }
@@ -1394,10 +1402,11 @@ uint16_t WS2812FX::mode_multi_comet(void)
   uint32_t cycleTime = 10 + (uint32_t)(255 - SEGMENT.speed);
   uint32_t it = now / cycleTime;
   if (SEGENV.step == it) return FRAMETIME;
-
+  if (!SEGENV.allocateData(sizeof(uint16_t) * 8)) return mode_static(); //allocation failed
+  
   fade_out(SEGMENT.intensity);
-
-  static uint16_t comets[] = {UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX};
+  
+  uint16_t* comets = reinterpret_cast<uint16_t*>(SEGENV.data);
 
   for(uint8_t i=0; i < 8; i++) {
     if(comets[i] < SEGLEN) {
@@ -1607,8 +1616,13 @@ uint16_t WS2812FX::mode_juggle(void){
   fade_out(SEGMENT.intensity);
   CRGB fastled_col;
   byte dothue = 0;
+
+  //if (!SEGENV.allocateData(sizeof(uint16_t) * 8)) return mode_static(); //allocation failed  
+  //uint16_t* comets = reinterpret_cast<uint16_t*>(SEGENV.data);
+  
   for ( byte i = 0; i < 8; i++) {
     uint16_t index = 0 + beatsin88((128 + SEGMENT.speed)*(i + 7), 0, SEGLEN -1);
+    uint16_t index2 = 0 + beatsin88((128 + SEGMENT.speed)*(i + 7), 0, SEGLEN -1,0,150);
     fastled_col = col_to_crgb(getPixelColor(index));
     fastled_col |= (SEGMENT.palette==0)?CHSV(dothue, 220, 255):ColorFromPalette(currentPalette, dothue, 255);
     setPixelColor(index, fastled_col.red, fastled_col.green, fastled_col.blue);
@@ -1721,7 +1735,8 @@ uint16_t WS2812FX::mode_colorwaves()
   uint8_t msmultiplier = beatsin88(147, 23, 60);
 
   uint16_t hue16 = sHue16;//gHue * 256;
-  uint16_t hueinc16 = beatsin88(113, 300, 1500);
+  // uint16_t hueinc16 = beatsin88(113, 300, 1500);
+  uint16_t hueinc16 = beatsin88(113, 60, 300)*SEGMENT.intensity*10/255;  // Use the Intensity Slider for the hues
 
   sPseudotime += duration * msmultiplier;
   sHue16 += duration * beatsin88(400, 5, 9);
@@ -1995,7 +2010,7 @@ uint16_t WS2812FX::mode_meteor() {
     SEGENV.aux1 = 0;
     SEGENV.step = in;
   }
-  
+
   return FRAMETIME;
 }
 
@@ -2527,8 +2542,10 @@ uint16_t WS2812FX::sinelon_base(bool dual, bool rainbow=false) {
   if (rainbow) {
     color1 = color_wheel((pos & 0x07) * 32);
   }
-  //setPixelColor(SEGMENT.start + pos, color1);
+  
   setRange(prevpos,pos,color1);
+  //setPixelColor(pos, color1);
+  //blur(240);
 
   if (dual) {
     uint32_t color2 = SEGCOLOR(2);
@@ -2536,7 +2553,6 @@ uint16_t WS2812FX::sinelon_base(bool dual, bool rainbow=false) {
     if (!color2) color2 = color_from_palette(pos, true, false, 0);
     if (rainbow) color2 = color1; //rainbow
 
-    //setPixelColor(SEGMENT.start + SEGLEN-1-pos, color2);
     setRange(SEGMENT.start + SEGLEN-1-prevpos,SEGMENT.start + SEGLEN-1-pos,color2);
   }
   SEGENV.aux0 = pos;
@@ -2714,7 +2730,7 @@ uint16_t WS2812FX::mode_starburst(void) {
   star* stars = reinterpret_cast<star*>(SEGENV.data);
   
   float          maxSpeed                = 375.0f;  // Max velocity
-  float          particleIgnition        = 100.0f;  // How long to "flash"
+  float          particleIgnition        = 150.0f;  // How long to "flash"
   float          particleFadeTime        = 1500.0f; // Fade out time
      
   for (int j = 0; j < numStars; j++)
@@ -2860,7 +2876,7 @@ uint16_t WS2812FX::mode_exploding_fireworks(void)
         sparks[i].col = constrain(sparks[i].col, 0, 255);
 
         CRGB color = HeatColor(sparks[i].col);
-        setPixelColor(SEGMENT.start + int(sparks[i].pos),color.red>>5,color.green>>5,color.blue>>5);
+        setPixelColor(SEGMENT.start + int(sparks[i].pos),color.red>>4,color.green>>4,color.blue>>4);
       }
       // flare
       setPixelColor(int(flare->pos),flare->col,flare->col,flare->col);
@@ -2945,13 +2961,15 @@ uint16_t WS2812FX::mode_exploding_fireworks(void)
 uint16_t WS2812FX::mode_drip(void)
 {
   //allocate segment data
-  uint16_t numDrops = 2; 
+  uint16_t numDrops = 4; 
   uint16_t dataSize = sizeof(spark) * numDrops;
   if (!SEGENV.allocateData(dataSize)) return mode_static(); //allocation failed
 
   fill(SEGCOLOR(1));
   
   Spark* drops = reinterpret_cast<Spark*>(SEGENV.data);
+
+  numDrops = 1 + (SEGMENT.intensity >> 6);
 
   float gravity = -0.001 - (SEGMENT.speed/50000.0);
   gravity *= SEGLEN;
@@ -2970,7 +2988,7 @@ uint16_t WS2812FX::mode_drip(void)
       if (drops[j].col>255) drops[j].col=255;
       setPixelColor(int(drops[j].pos),color_blend(BLACK,SEGCOLOR(0),drops[j].col));
       
-      drops[j].col += map(SEGMENT.intensity, 0, 255, 1, 6); // swelling
+      drops[j].col += map(SEGMENT.speed, 0, 255, 1, 6); // swelling
       
       if (random8() < drops[j].col/10) {               // random drop
         drops[j].colIndex=2;               //fall
@@ -3012,6 +3030,55 @@ uint16_t WS2812FX::mode_drip(void)
 
 
 /*
+/ Plasma Effect
+/ adapted from https://github.com/atuline/FastLED-Demos/blob/master/plasma/plasma.ino
+*/
+uint16_t WS2812FX::mode_plasma(void) {
+  uint8_t thisPhase = beatsin8(6,-64,64);                       // Setting phase change for a couple of waves.
+  uint8_t thatPhase = beatsin8(7,-64,64);
+
+  for (int i = 0; i < SEGLEN; i++) {   // For each of the LED's in the strand, set color &  brightness based on a wave as follows:
+    uint8_t colorIndex = cubicwave8((i*(1+ 3*(SEGMENT.speed >> 5)))+(thisPhase) & 0xFF)/2   // factor=23 // Create a wave and add a phase change and add another wave with its own phase change.
+                             + cos8((i*(1+ 2*(SEGMENT.speed >> 5)))+(thatPhase) & 0xFF)/2;  // factor=15 // Hey, you can even change the frequencies if you wish.
+    uint8_t thisBright = qsub8(colorIndex, beatsin8(6,0, (255 - SEGMENT.intensity)|0x01 ));
+    CRGB color = ColorFromPalette(currentPalette, colorIndex, thisBright, LINEARBLEND);
+    setPixelColor(i, color.red, color.green, color.blue);
+  }
+
+  return FRAMETIME;
+} 
+
+
+/*
+ * Percentage display
+ * Intesity values from 0-100 turn on the leds.
+ */
+uint16_t WS2812FX::mode_percent(void) {
+
+	uint8_t percent = max(0, min(100, SEGMENT.intensity));
+
+	float active_float = SEGLEN * percent / 100.0;
+	uint16_t active_leds = active_float;
+	uint16_t active_part = (active_float - active_leds) * 255;
+	CRGB color;
+
+	for (uint16_t i = 0; i < SEGLEN; i++) {
+		if (i < active_leds) {
+			setPixelColor(i, color_from_palette(i, true, PALETTE_SOLID_WRAP, 0));
+		}
+		else if (i == active_leds) {
+			setPixelColor(i, color_from_palette(i, true, PALETTE_SOLID_WRAP, 0, active_part));
+		}
+		else {
+			setPixelColor(i, SEGCOLOR(1));
+		}
+	}
+
+	return FRAMETIME;
+}
+
+
+/*
 * Based on running lights, but with an accidental slip effect of
 *                          travelling in opposite directions
 */
@@ -3044,35 +3111,5 @@ uint16_t WS2812FX::mode_running_slip(void) {
   }
 
   SEGENV.step = it;
-  return FRAMETIME;
-}
-
-
-/*
-/ Plasma effect
-*/
-#define qsuba(x, b)  ((x>b)?x-b:0) 
-uint16_t WS2812FX::mode_plasma(void) {                        // This is the heart of this program. Sure is short. . . and fast.
-  int thisPhase = beatsin8(6+SEGMENT.speed*12/255,-64,64);    // Setting phase change for a couple of waves.
-  int thatPhase = beatsin8(7+SEGMENT.speed*12/255,-64,64);
-
-  if (SEGENV.call % 2 == 0) { 
-    uint8_t maxChanges = 24; 
-    nblendPaletteTowardPalette(currentPalette, targetPalette, maxChanges);     // AWESOME palette blending capability.
-  }
-
-  if (SEGENV.call % 200 == 0) {                               // Change the target palette to a random one every 5 seconds.
-    uint8_t baseC = random8();                                // You can use this as a baseline colour if you want similar hues in the next line.
-    targetPalette = CRGBPalette16(CHSV(baseC+random8(32), 192, random8(128,255)), CHSV(baseC+random8(32), 255, random8(192,255)), CHSV(baseC+random8(32), 192, random8(192,255)), CHSV(baseC+random8(32), 255, random8(192,255)));
-  }
-
-  for (int k=0; k<SEGLEN; k++) {                              // For each of the LED's in the strand, set a brightness based on a wave as follows:
-
-    int colorIndex = cubicwave8((k*23)+thisPhase)/2 + cos8((k*15)+thatPhase)/2;// Create a wave and add a phase change and add another wave with its own phase change.. Hey, you can even change the frequencies if you wish.
-    int thisBright = qsuba(colorIndex, beatsin8(7,0,96));                      // qsub gives it a bit of 'black' dead space by setting sets a minimum value. If colorIndex < current value of beatsin8(), then bright = 0. Otherwise, bright = colorIndex..
-
-    CRGB color = ColorFromPalette(currentPalette, colorIndex, thisBright);
-    setPixelColor(SEGMENT.start + k, color.red, color.green, color.blue);
-  }
   return FRAMETIME;
 }
