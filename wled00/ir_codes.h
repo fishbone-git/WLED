@@ -4,6 +4,25 @@
 #define IRCUSTOM_ONOFF  0xA55AEA15 //Pioneer RC-975R "+FAV" button (example)
 #define IRCUSTOM_MACRO1 0xFFFFFFFF //placeholder, will never be checked for
 
+// Default IR codes for 6-key learning remote https://www.aliexpress.com/item/4000307837886.html
+// This cheap remote has the advantage of being more powerful (longer range) than cheap credit-card remotes
+#define IR6_POWER        0xFF0FF0
+#define IR6_CHANNEL_UP   0xFF8F70
+#define IR6_CHANNEL_DOWN 0xFF4FB0
+#define IR6_VOLUME_UP    0xFFCF30
+#define IR6_VOLUME_DOWN  0xFF2FD0
+#define IR6_MUTE         0xFFAF50
+
+#define IR9_POWER       0xFF629D
+#define IR9_A           0xFF22DD
+#define IR9_B           0xFF02FD
+#define IR9_C           0xFFC23D
+#define IR9_LEFT        0xFF30CF
+#define IR9_RIGHT       0xFF7A85
+#define IR9_UP          0xFF9867
+#define IR9_DOWN        0xFF38C7
+#define IR9_SELECT      0xFF18E7
+
 //Infrared codes for 24-key remote from http://woodsgood.ca/projects/2015/02/13/rgb-led-strip-controllers-ir-codes/
 #define IR24_BRIGHTER  0xF700FF
 #define IR24_DARKER    0xF7807F
@@ -219,3 +238,12 @@
 #define COLOR2_NEUTRALWHITE  0xFF000000
 #define COLOR2_COLDWHITE     0xFF7F7F7F
 #define COLOR2_COLDWHITE2    0xFFFFFFFF
+
+#define ACTION_NONE             0
+#define ACTION_BRIGHT_UP        1
+#define ACTION_BRIGHT_DOWN      2
+#define ACTION_SPEED_UP         3
+#define ACTION_SPEED_DOWN       4
+#define ACTION_INTENSITY_UP     5
+#define ACTION_INTENSITY_DOWN   6
+#define ACTION_POWER            7
