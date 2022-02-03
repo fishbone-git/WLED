@@ -108,6 +108,10 @@
 #include "../usermods/quinled-an-penta/quinled-an-penta.h"
 #endif
 
+#ifdef USERMOD_AMBILIGHT2WLED
+#include "../usermods/Ambilight2WLED/ambilight2wled.h"
+#endif
+
 void registerUsermods()
 {
 /*
@@ -202,5 +206,9 @@ void registerUsermods()
 
   #ifdef QUINLED_AN_PENTA
   usermods.add(new QuinLEDAnPentaUsermod());
+  #endif
+
+  #ifdef USERMOD_AMBILIGHT2WLED
+  usermods.add(new Usermod_Ambilight2WLED());
   #endif
 }
